@@ -10,6 +10,7 @@ module.exports = {
   },
   mode: "production",
   module: {
+   
     rules: [
       { test: /\.js$/, 
         exclude: /node_modules/,
@@ -21,9 +22,8 @@ module.exports = {
       {
         test: /\.mp3$/,
         loader: 'file-loader',
-        options: {
-            name: '[name].mp3',
-            outputPath: '../views/assets/'
+        query: {
+            name: '../views/assets/[name].[ext]'
         }
       },
       {
@@ -60,8 +60,7 @@ module.exports = {
             },
             {
                 loader: 'sass-loader'
-            },
-            
+            }
         ]
       }
     ]

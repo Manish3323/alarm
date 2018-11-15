@@ -45,10 +45,10 @@
     "local-pack": "webpack --config webpack.dev.config.js",
     "prod-pack": "webpack --config webpack.prod.config.js",
     "babel": "babel src -d views",
-    "build": "npm run local-pack && npm run babel",
-    "prod": "npm run prod-pack && npm run babel",
-    "local-webpack": "npm run build && npm run start",
-    "prod-webpack": "npm run prod "
+    "build-script": "npm run local-pack && npm run babel",
+    "prod-script": "npm run prod-pack && npm run babel",
+    "start-script": "npm run build-script && npm run start",
+    "prod": "npm run prod-script && npm run start"
   },
   "eslintConfig": {
     "extends": "react-app"
