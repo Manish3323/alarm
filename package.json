@@ -1,0 +1,57 @@
+{
+  "name": "holddistend-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "css-loader": "^1.0.1",
+    "es6-promise": "^4.2.5",
+    "extract-loader": "^3.0.0",
+    "file-loader": "^2.0.0",
+    "isomorphic-fetch": "^2.2.1",
+    "node-sass": "^4.9.4",
+    "postcss-loader": "^3.0.0",
+    "precss": "^3.1.2",
+    "react": "^16.6.0",
+    "react-bootstrap": "^0.32.4",
+    "react-dom": "^16.6.0",
+    "react-helmet": "^5.2.0",
+    "react-redux": "^5.1.0",
+    "react-router": "^4.3.1",
+    "react-router-dom": "^4.3.1",
+    "react-scripts": "2.1.1",
+    "react-thunk": "^1.0.0",
+    "redux": "^4.0.1",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.1.2",
+    "@babel/core": "^7.1.2",
+    "@babel/preset-env": "^7.1.0",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.4",
+    "babel-plugin-css-modules-transform": "^1.6.1",
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.2"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "eject": "react-scripts eject",
+    "local-pack": "webpack --config webpack.dev.config.js",
+    "prod-pack": "webpack --config webpack.prod.config.js",
+    "babel": "babel src -d views",
+    "build": "npm run local-pack && npm run babel",
+    "prod": "npm run prod-pack && npm run babel",
+    "local-webpack": "npm run build && npm run start",
+    "prod-webpack": "npm run prod "
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}
