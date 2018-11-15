@@ -9,6 +9,8 @@ var _react = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
+var _uuid = _interopRequireDefault(require("uuid"));
+
 var _reactBootstrap = require("react-bootstrap");
 
 var _Alarm = _interopRequireDefault(require("./Alarm"));
@@ -52,13 +54,14 @@ function _assertThisInitialized(self) { if (self === void 0) { throw new Referen
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var defaultAlarmObject = {
-  id: Math.round(Math.random(10).toFixed()),
+  id: null,
   hrs: 0,
   mins: 0,
   repeatOn: 'AllDays',
   setForDays: [],
   optedForSnooze: true,
   snoozeDelay: '',
+  alarmPassedForToday: null,
   isActive: true
 };
 
@@ -85,7 +88,9 @@ function (_Component) {
       disableSave: false,
       currentTime: new Date(),
       showAlarmsFlag: false,
-      addItemToAlarmList: defaultAlarmObject
+      playsound: false,
+      addItemToAlarmList: defaultAlarmObject,
+      currentlyPlayingId: 0
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "showAlarms", function () {
@@ -96,12 +101,30 @@ function (_Component) {
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "listAlarms", function () {
       if (_this.state.data && _this.state.data.alarms.length > 0) {
-        return _this.state.data.alarms.map(function (alarm) {
-          return _react.default.createElement(_Alarm.default, {
+        var arr = _this.state.data.alarms;
+        var hrs = new Date().getHours();
+        var mins = new Date().getMinutes();
+        arr.sort(function (a, b) {
+          return b.mins - mins - (a.mins - mins);
+        }); // sort by minutes descending
+
+        arr.sort(function (a, b) {
+          return b.hrs - hrs - (a.hrs - hrs);
+        }); // sort by hours descending
+
+        return arr.map(function (alarm) {
+          return _react.default.createElement("div", {
             key: alarm.id,
-            setActiveFlag: _this.setActiveFlag,
+            style: {
+              paddingTop: '10px',
+              paddingBottom: '10px'
+            }
+          }, _react.default.createElement(_Alarm.default, {
+            setActiveFlag: function setActiveFlag(id, value) {
+              return _this.setActiveFlag(id, value);
+            },
             data: alarm
-          });
+          }));
         });
       } else {
         return null;
@@ -141,6 +164,7 @@ function (_Component) {
         }
       }
 
+      addItemToAlarmList['id'] = _uuid.default.v4();
       data.alarms.push(addItemToAlarmList);
 
       _this.setState({
@@ -150,6 +174,7 @@ function (_Component) {
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "setActiveFlag", function (id, value) {
+      console.log(id, value);
       var data = _this.state.data;
       data.alarms.forEach(function (alarm) {
         if (alarm.id === id) {
@@ -164,10 +189,13 @@ function (_Component) {
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "addAlarmToList", function () {
       return _react.default.createElement(_reactBootstrap.Grid, {
-        frameBorder: "true"
+        frameBorder: true
       }, _react.default.createElement(_reactBootstrap.Row, null, _react.default.createElement(_reactBootstrap.Col, {
-        xs: 3
-      }, "Alarm Time hours: ", _react.default.createElement("select", {
+        xs: 3,
+        style: {
+          paddingBottom: '20px'
+        }
+      }, "Alarm At : hour: ", _react.default.createElement("select", {
         value: _this.state.addItemToAlarmList.hrs,
         onChange: function onChange(event) {
           return _this.setProp(event, 'hrs');
@@ -176,7 +204,7 @@ function (_Component) {
         return _react.default.createElement("option", {
           key: y
         }, x);
-      })), "minutes : ", _react.default.createElement("select", {
+      })), "mins: ", _react.default.createElement("select", {
         value: _this.state.addItemToAlarmList.mins,
         onChange: function onChange(event) {
           return _this.setProp(event, 'mins');
@@ -186,16 +214,6 @@ function (_Component) {
           key: y
         }, x);
       })))), _react.default.createElement(_reactBootstrap.Row, null, _react.default.createElement(_reactBootstrap.Col, {
-        ref: "snooze",
-        xs: 3
-      }, "snooze : ", _react.default.createElement("input", {
-        className: "snooze",
-        value: _this.state.addItemToAlarmList.optedForSnooze,
-        type: "checkbox",
-        onChange: function onChange(event) {
-          return _this.setProp(event, 'optedForSnooze');
-        }
-      })), _react.default.createElement(_reactBootstrap.Col, {
         xs: 3
       }, "repeat on :", _react.default.createElement("select", {
         value: _this.state.addItemToAlarmList.repeatOn,
@@ -206,7 +224,17 @@ function (_Component) {
         return _react.default.createElement("option", {
           key: x
         }, x);
-      })))), _react.default.createElement(_reactBootstrap.Row, {
+      }))), _react.default.createElement(_reactBootstrap.Col, {
+        ref: "snooze",
+        xs: 3
+      }, "snooze : ", _react.default.createElement("input", {
+        className: "snooze",
+        value: _this.state.addItemToAlarmList.optedForSnooze,
+        type: "checkbox",
+        onChange: function onChange(event) {
+          return _this.setProp(event, 'optedForSnooze');
+        }
+      }))), _react.default.createElement(_reactBootstrap.Row, {
         ref: "specificdays"
       }, _react.default.createElement(_reactBootstrap.Col, {
         xs: 3
@@ -254,22 +282,86 @@ function (_Component) {
         this.loadAlarms();
       }
 
+      this.audio = _reactDom.default.findDOMNode(this.refs.audio);
       setInterval(function () {
-        return _this2.setState({
-          currentTime: new Date()
-        });
+        return _this2.checkAlarmAndUpdateClock();
       }, 1000);
+    }
+  }, {
+    key: "checkAlarmAndUpdateClock",
+    value: function checkAlarmAndUpdateClock() {
+      var _this3 = this;
+
+      this.setState({
+        currentTime: new Date()
+      });
+      var currentDay = this.state.currentTime.getDay();
+      var secs = this.state.currentTime.getSeconds();
+      var hrs = this.state.currentTime.getHours();
+      var mins = this.state.currentTime.getMinutes();
+      this.state.data.alarms.forEach(function (alarm) {
+        if (alarm.isActive && alarm.setForDays.indexOf(days[currentDay]) !== -1 && parseInt(alarm.hrs) === hrs && parseInt(alarm.mins) === mins && secs === 0) {
+          _this3.playAlarm(alarm.id);
+        }
+      });
+    }
+  }, {
+    key: "playAlarm",
+    value: function playAlarm(id) {
+      var _this4 = this;
+
+      this.audio.play();
+      setTimeout(function () {
+        _this4.setState({
+          playsound: false
+        });
+      }, 20000);
+      this.setState({
+        currentlyPlayingId: id,
+        playsound: true
+      });
+    }
+  }, {
+    key: "stopAlarm",
+    value: function stopAlarm(id) {
+      this.audio.pause();
+      var data = this.state.data;
+      data.alarms.forEach(function (alarm) {
+        if (alarm.id === id) {
+          alarm.alarmPassedForToday = true;
+        }
+      });
+      this.setState({
+        data: data,
+        playsound: false
+      });
+    }
+  }, {
+    key: "snoozeSound",
+    value: function snoozeSound(id) {
+      this.audio.pause();
+      var data = this.state.data;
+      data.alarms.forEach(function (alarm) {
+        if (alarm.id === id) {
+          alarm.mins = parseInt(alarm.mins) + 1;
+          alarm.mins = alarm.mins % 60;
+        }
+      });
+      this.setState({
+        data: data,
+        playsound: false
+      });
     }
   }, {
     key: "loadAlarms",
     value: function loadAlarms() {
-      var _this3 = this;
+      var _this5 = this;
 
       fetch('http://localhost:3000/getAlarms').then(function (response) {
         return response.json();
       }).then(function (json) {
         if (json) {
-          _this3.setState({
+          _this5.setState({
             data: json
           });
         }
@@ -285,30 +377,76 @@ function (_Component) {
   }, {
     key: "render",
     value: function render() {
-      var _this4 = this;
+      var _this6 = this;
 
-      return _react.default.createElement(_reactBootstrap.Grid, null, _react.default.createElement(_reactBootstrap.Row, null, _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement("h1", null, this.renderTime())), _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement("button", {
+      var runningAlarm = null;
+
+      if (this.state.playsound) {
+        runningAlarm = this.state.data.alarms.find(function (item) {
+          return item.id === _this6.state.currentlyPlayingId;
+        });
+      }
+
+      return _react.default.createElement("div", null, _react.default.createElement("audio", {
+        hidden: true,
+        ref: "audio",
+        src: "../assets/alarm.mp3",
+        type: "audio/mp3",
+        controls: true
+      }), _react.default.createElement(_reactBootstrap.Grid, null, _react.default.createElement(_reactBootstrap.Row, null, _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement("h1", null, this.renderTime())), _react.default.createElement(_reactBootstrap.Col, null, _react.default.createElement("button", {
+        style: {
+          marginRight: '20px'
+        },
         className: this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised',
         onClick: function onClick() {
-          return _this4.showAlarms();
+          return _this6.showAlarms();
         }
       }, " Show Alarms "), _react.default.createElement("button", {
         className: !this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised',
         onClick: function onClick() {
-          return _this4.setState({
+          return _this6.setState({
             showAlarmsFlag: false,
             addItemToAlarmList: defaultAlarmObject,
             disableSave: false
           });
         }
-      }, " Set Alarm ")), this.state.showAlarmsFlag && _react.default.createElement(_reactBootstrap.Col, null, this.listAlarms()), !this.state.showAlarmsFlag && _react.default.createElement(_reactBootstrap.Col, null, this.addAlarmToList()))));
+      }, " Set Alarm ")), this.state.showAlarmsFlag && _react.default.createElement(_reactBootstrap.Col, {
+        style: {
+          paddingTop: '20px'
+        }
+      }, this.listAlarms()), !this.state.showAlarmsFlag && _react.default.createElement(_reactBootstrap.Col, {
+        style: {
+          paddingTop: '20px'
+        }
+      }, this.addAlarmToList())))), runningAlarm && _react.default.createElement("div", {
+        className: "static-modal"
+      }, _react.default.createElement(_reactBootstrap.Modal.Dialog, {
+        show: this.state.playsound,
+        onHide: function onHide() {
+          return _this6.stopAlarm(runningAlarm.id);
+        }
+      }, _react.default.createElement(_reactBootstrap.Modal.Header, null, _react.default.createElement(_reactBootstrap.Modal.Title, null, runningAlarm.optedForSnooze && _react.default.createElement(_reactBootstrap.Button, {
+        bsStyle: "primary",
+        onClick: function onClick() {
+          return _this6.snoozeSound(runningAlarm.id);
+        }
+      }, "Snooze for 5 minutes"))), _react.default.createElement(_reactBootstrap.Modal.Body, null, "utha utha...!! shalecha vel zala"), _react.default.createElement(_reactBootstrap.Modal.Footer, null, _react.default.createElement(_reactBootstrap.Button, {
+        onClick: function onClick() {
+          return _this6.stopAlarm(runningAlarm.id);
+        }
+      }, "Stop Alarm"), _react.default.createElement(_reactBootstrap.Button, {
+        bsStyle: "primary",
+        onClick: function onClick() {
+          return _this6.stopAlarm(runningAlarm.id);
+        }
+      }, "Close window changes")))));
     }
   }]);
 
   return Home;
 }(_react.Component);
 
-var days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 var daysEnums = {
   WeekDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
   WeekEnds: ['Saturday', 'Sunday'],

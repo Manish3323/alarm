@@ -47,35 +47,52 @@ function (_Component) {
   _createClass(Alarm, [{
     key: "render",
     value: function render() {
+      var _this = this;
+
       var _this$props$data = this.props.data,
+          id = _this$props$data.id,
           mins = _this$props$data.mins,
           hrs = _this$props$data.hrs,
           optedForSnooze = _this$props$data.optedForSnooze,
           setForDays = _this$props$data.setForDays,
           isActive = _this$props$data.isActive,
-          setActiveFlag = _this$props$data.setActiveFlag;
+          alarmPassedForToday = _this$props$data.alarmPassedForToday;
       return _react.default.createElement(_reactBootstrap.Grid, null, _react.default.createElement(_reactBootstrap.Row, null, _react.default.createElement(_reactBootstrap.Col, {
-        xs: 4
+        xs: 4,
+        style: {
+          border: '1px solid black',
+          borderRadius: '0.5'
+        }
       }, _react.default.createElement("div", {
+        className: alarmPassedForToday ? 'red-background' : '',
         style: {
           color: 'black',
-          backgroundColor: isActive ? 'green' : 'red',
-          opacity: 0.4
+          paddingTop: '20px',
+          paddingBottom: '20px'
         }
-      }, _react.default.createElement("h4", null, " Alarm set for  ", _commonfunctions.default.appendZero(hrs), " : ", _commonfunctions.default.appendZero(mins), " "), _react.default.createElement("div", null, "snooze ", optedForSnooze ? 'active' : 'not active'), _react.default.createElement("div", null, "repeats on :", _react.default.createElement("div", {
+      }, _react.default.createElement("div", null, _react.default.createElement("input", {
         style: {
-          flex: 1,
-          flexDirection: 'row',
-          alignItems: 'center'
-        }
-      }, setForDays && setForDays.length > 0 && setForDays.map(function (each, index) {
+          paddingRight: '5px'
+        },
+        type: "checkbox",
+        onChange: function onChange(event) {
+          return _this.props.setActiveFlag(id, event.target.checked);
+        },
+        defaultChecked: isActive
+      }), _react.default.createElement("h2", null, _commonfunctions.default.appendZero(hrs), " : ", _commonfunctions.default.appendZero(mins)), alarmPassedForToday && _react.default.createElement("div", {
+        className: "pull-right"
+      }, _react.default.createElement("h6", null, "Passed for today"))), _react.default.createElement("div", {
+        className: "card-body"
+      }, _react.default.createElement("div", null, "snooze ", optedForSnooze ? 'active' : 'inactive'), _react.default.createElement("div", null, "repeats on :", setForDays && setForDays.length > 0 && setForDays.map(function (each, index) {
         return _react.default.createElement("h6", {
+          style: {
+            display: 'inline-block',
+            paddingLeft: '5px',
+            paddingRight: '5px'
+          },
           key: index
-        }, " ", each);
-      }))), "Set Alarm  : ", _react.default.createElement("input", {
-        className: "toggle",
-        type: "checkbox"
-      })))));
+        }, " ", each.charAt(0));
+      })))))));
     }
   }]);
 

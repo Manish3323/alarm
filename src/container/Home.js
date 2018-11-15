@@ -1,17 +1,19 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
-import {Grid, Col, Row } from 'react-bootstrap';
+import {default as UUID} from "uuid";
+import {Grid, Col, Row, Modal, Button } from 'react-bootstrap';
 import Alarm from './Alarm';
 import helper from '../helpers/commonfunctions';
 import "isomorphic-fetch"
 const defaultAlarmObject = {
-    id:Math.round(Math.random(10).toFixed()),
+    id: null,
     hrs: 0,
     mins: 0,
     repeatOn: 'AllDays',
     setForDays: [],
     optedForSnooze: true,
     snoozeDelay: '',
+    alarmPassedForToday:null,
     isActive:true
 }
 class Home extends Component {
@@ -20,15 +22,58 @@ class Home extends Component {
         disableSave: false,
         currentTime: new Date(),
         showAlarmsFlag: false,
-        addItemToAlarmList: defaultAlarmObject
+        playsound: false,
+        addItemToAlarmList: defaultAlarmObject,
+        currentlyPlayingId:0
     }
     componentDidMount(){
         if(!this.state.data){
             this.loadAlarms();
         }
-        setInterval(() => this.setState({ currentTime: new Date() }), 1000);
+        this.audio = ReactDOM.findDOMNode(this.refs.audio);
+        setInterval(() => this.checkAlarmAndUpdateClock(), 1000);
     }
 
+    checkAlarmAndUpdateClock(){
+        this.setState({ currentTime: new Date() });
+        const currentDay = this.state.currentTime.getDay();
+        const secs = this.state.currentTime.getSeconds();
+        const hrs = this.state.currentTime.getHours();
+        const mins = this.state.currentTime.getMinutes();
+        this.state.data.alarms.forEach((alarm)=>{
+            if(alarm.isActive && alarm.setForDays.indexOf(days[currentDay]) !== -1 && parseInt(alarm.hrs) === hrs && parseInt(alarm.mins) === mins && secs === 0){
+                this.playAlarm(alarm.id);
+            }
+        })
+    }
+    playAlarm(id){
+        this.audio.play();
+        setTimeout(()=>{
+            this.setState({playsound:false})
+        },20000)
+        this.setState({currentlyPlayingId:id,playsound: true})
+    }
+    stopAlarm(id){
+        this.audio.pause();
+        var data = this.state.data;
+        data.alarms.forEach((alarm) =>{
+            if(alarm.id === id){
+                alarm.alarmPassedForToday = true
+            }
+        })
+        this.setState({data,playsound: false})
+    }
+    snoozeSound(id){
+        this.audio.pause();
+        var data = this.state.data;
+        data.alarms.forEach((alarm) =>{
+            if(alarm.id === id){
+                alarm.mins = parseInt(alarm.mins) + 1
+                alarm.mins = alarm.mins % 60
+            }
+        })
+        this.setState({data,playsound:false})
+    }
     loadAlarms() {
         fetch('http://localhost:3000/getAlarms')
         .then(response => response.json()
@@ -57,8 +102,17 @@ class Home extends Component {
     }
     listAlarms = () =>{
         if(this.state.data && this.state.data.alarms.length > 0){
-            return this.state.data.alarms.map(alarm =>{
-               return <Alarm key={alarm.id} setActiveFlag={this.setActiveFlag} data={alarm} />
+            let arr = this.state.data.alarms
+            let hrs = new Date().getHours();
+            let mins = new Date().getMinutes();
+            arr.sort(function(a,b) {return (b.mins - mins) - (a.mins-mins)});// sort by minutes descending
+            arr.sort(function(a,b) {return (b.hrs - hrs) - (a.hrs-hrs)}); // sort by hours descending
+            return arr.map(alarm =>{
+               return (
+                   <div key={alarm.id} style={{paddingTop:'10px',paddingBottom:'10px'}}>
+                        <Alarm setActiveFlag={(id,value)=>this.setActiveFlag(id,value)} data={alarm} />
+                   </div>
+               )
             })
         }else{  
             return null
@@ -86,10 +140,12 @@ class Home extends Component {
                 }
             }
         }
+        addItemToAlarmList['id'] = UUID.v4();
         data.alarms.push(addItemToAlarmList)
         this.setState({data,disableSave:true})
     }
     setActiveFlag = (id,value) => {
+        console.log(id,value)
         var data = this.state.data;
         data.alarms.forEach((alarm) =>{
             if(alarm.id === id){
@@ -100,20 +156,20 @@ class Home extends Component {
     }
     addAlarmToList = () => {
         return (
-            <Grid frameBorder="true">
-                <Row>
-                    <Col xs={3}>
-                        Alarm Time
-                        hours: <select value={this.state.addItemToAlarmList.hrs}  onChange={(event) => this.setProp(event,'hrs')}>{[...Array(24).keys()].map((x,y) => <option key={y}>{x}</option>)}</select>
-                        minutes : <select value={this.state.addItemToAlarmList.mins} onChange={(event) => this.setProp(event,'mins')}>{[...Array(60).keys()].map((x,y) => <option key={y}>{x}</option>)}</select>
+            <Grid frameBorder>
+                <Row >
+                    <Col xs={3} style={{paddingBottom:'20px'}}>
+                        Alarm At : 
+                        hour: <select value={this.state.addItemToAlarmList.hrs}  onChange={(event) => this.setProp(event,'hrs')}>{[...Array(24).keys()].map((x,y) => <option key={y}>{x}</option>)}</select>
+                        mins: <select value={this.state.addItemToAlarmList.mins} onChange={(event) => this.setProp(event,'mins')}>{[...Array(60).keys()].map((x,y) => <option key={y}>{x}</option>)}</select>
                     </Col>
                 </Row>
                 <Row>
-                    <Col ref="snooze" xs={3}>
-                       snooze : <input className="snooze" value={this.state.addItemToAlarmList.optedForSnooze} type="checkbox" onChange={(event) => this.setProp(event,'optedForSnooze')}/>
-                    </Col>
                     <Col xs={3}>
                        repeat on :<select value={this.state.addItemToAlarmList.repeatOn} onChange={(event) => this.setProp(event,'repeatOn')}>{Object.keys(daysEnums).map((x) => <option key={x}>{x}</option>)}</select>
+                    </Col>
+                    <Col ref="snooze" xs={3}>
+                       snooze : <input className="snooze" value={this.state.addItemToAlarmList.optedForSnooze} type="checkbox" onChange={(event) => this.setProp(event,'optedForSnooze')}/>
                     </Col>
                 </Row>
                 <Row ref="specificdays">
@@ -139,38 +195,66 @@ class Home extends Component {
         ) 
     }
     render() { 
+        let runningAlarm = null;
+        if(this.state.playsound){
+            runningAlarm = this.state.data.alarms.find((item) => item.id === this.state.currentlyPlayingId)
+        }
         return (
-            <Grid>
-                <Row>
-                    <Col >
-                        <Col>
-                            <h1>
-                                {
-                                    this.renderTime()
-                                }
-                            </h1>
-                        </Col>
-                        <Col>
-                            <button className={this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised'} onClick={() => this.showAlarms()}> Show Alarms </button>
-                            <button className={!this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised'} onClick={() => this.setState({showAlarmsFlag: false,addItemToAlarmList: defaultAlarmObject,disableSave:false})}> Set Alarm </button>
-                        </Col>
-                        {this.state.showAlarmsFlag &&
-                        <Col>
-                            {this.listAlarms()}     
-                        </Col>
-                        }
-                        {!this.state.showAlarmsFlag &&
+            <div>
+                <audio hidden={true} ref="audio" src="../assets/alarm.mp3" type="audio/mp3" controls></audio>
+                <Grid>
+                    <Row>
                         <Col >
-                            {this.addAlarmToList()}
+                            <Col>
+                                <h1>
+                                    {
+                                        this.renderTime()
+                                    }
+                                </h1>
+                            </Col>
+                            <Col>
+                                <button style={{marginRight:'20px'}} className={this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised'} onClick={() => this.showAlarms()}> Show Alarms </button>
+                                <button className={!this.state.showAlarmsFlag ? 'active btn btn-raised' : 'btn btn-raised'} onClick={() => this.setState({showAlarmsFlag: false,addItemToAlarmList: defaultAlarmObject,disableSave:false})}> Set Alarm </button>
+                            </Col>
+                            {this.state.showAlarmsFlag &&
+                            <Col style={{paddingTop:'20px'}} > 
+                                {this.listAlarms()}     
+                            </Col>
+                            }
+                            {!this.state.showAlarmsFlag &&
+                            <Col style={{paddingTop:'20px'}}>
+                                {this.addAlarmToList()}
+                            </Col>
+                            }
                         </Col>
-                        }
-                    </Col>
-                </Row>
-            </Grid>
+                    </Row>
+                </Grid>
+                {runningAlarm &&
+                <div className="static-modal" >
+                    <Modal.Dialog show={this.state.playsound} onHide={()=> this.stopAlarm(runningAlarm.id)}>
+                        <Modal.Header>
+                            <Modal.Title>
+                            {
+                                runningAlarm.optedForSnooze &&
+                                <Button bsStyle="primary" onClick={()=> this.snoozeSound(runningAlarm.id)}>Snooze for 5 minutes</Button>
+                            }
+                            </Modal.Title>
+                        </Modal.Header>
+
+                        <Modal.Body>utha utha...!! shalecha vel zala</Modal.Body>
+
+                        <Modal.Footer>
+                        <Button onClick={()=> this.stopAlarm(runningAlarm.id)}>Stop Alarm</Button>
+                        <Button bsStyle="primary" onClick={()=> this.stopAlarm(runningAlarm.id)}>Close window changes</Button>
+                        </Modal.Footer>
+                    </Modal.Dialog>
+                </div>
+            }
+            </div>
         );
     }
 }
-const days =  ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+const days =  ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
 const daysEnums = {
     WeekDays: ['Monday','Tuesday','Wednesday','Thursday','Friday'],

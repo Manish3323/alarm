@@ -3,25 +3,26 @@ import {Grid, Row, Col} from 'react-bootstrap';
 import helper from '../helpers/commonfunctions';
 class Alarm extends Component {
     render() { 
-        const { mins,hrs,optedForSnooze,setForDays,isActive,setActiveFlag } =  this.props.data
+        const { id,mins,hrs,optedForSnooze,setForDays,isActive,alarmPassedForToday } =  this.props.data
         return ( 
             <Grid>
                 <Row>
-                    <Col xs={4}>
-                        <div style={{color:'black',backgroundColor: isActive ? 'green': 'red',opacity:0.4}}> 
-                            <h4> Alarm set for  {helper.appendZero(hrs)} : {helper.appendZero(mins)} </h4>
-                            <div>snooze {optedForSnooze ? 'active' : 'not active' }</div> 
-                            <div>repeats on :
-                                {
-                                    <div style={{flex:1,flexDirection:'row',alignItems:'center'}}>
-                                        {setForDays && setForDays.length > 0 && 
-                                            setForDays.map((each,index) => <h6 key={index}> {each}</h6> )
-                                        }
-                                    </div>
-                                }
+                    <Col xs={4} style={{border:'1px solid black', borderRadius: '0.5'}}>
+                        <div className={alarmPassedForToday ? 'red-background' : ''} style={{color:'black',paddingTop:'20px',paddingBottom:'20px'}}> 
+                            <div>
+                                <input style={{paddingRight:'5px'}} type="checkbox" onChange={(event)=>this.props.setActiveFlag(id,event.target.checked)} defaultChecked={isActive}/>
+                                <h2>{helper.appendZero(hrs)} : {helper.appendZero(mins)}</h2>
+                                { alarmPassedForToday && <div className="pull-right"><h6>Passed for today</h6></div>}
                             </div>
-                            Set Alarm  : <input className="toggle" type="checkbox" checked={isActive}/>
-                        </div> 
+                            <div className="card-body"> 
+                                <div>snooze {optedForSnooze ? 'active' : 'inactive' }</div> 
+                                <div>repeats on :
+                                    {setForDays && setForDays.length > 0 && 
+                                        setForDays.map((each,index) => <h6 style={{display:'inline-block',paddingLeft: '5px',paddingRight:'5px'}} key={index}> {each.charAt(0)}</h6> )
+                                    }
+                                </div>
+                            </div>
+                        </div>
                     </Col>
                 </Row>
             </Grid>

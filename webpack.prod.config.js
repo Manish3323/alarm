@@ -19,22 +19,51 @@ module.exports = {
         }
       },
       {
-        test: /\.css$/,
-        use: ExtractTextPlugin.extract({
-          fallback: "style-loader",
-          use: "css-loader"
-        })
+        test: /\.mp3$/,
+        loader: 'file-loader',
+        options: {
+            name: '[name].mp3',
+            outputPath: '../views/assets/'
+        }
       },
       {
-        test: /\.scss$/,
-        use: ExtractTextPlugin.extract({
-          fallback: "style-loader",
-          use: "scss-loader"
-        })
+        test: /\.css$/,
+        use: [
+            {
+                loader: 'file-loader',
+                options: {
+                    name: '[name].css',
+                    outputPath: '../views/assets/'
+                }
+            },
+            {
+                loader: 'extract-loader'
+            },
+            {
+                loader: 'css-loader',
+                options: {
+                    url: false,
+                    minimize: true,
+                    sourceMap: true
+                }
+            },
+            {
+                loader: 'postcss-loader',
+                options: {
+                    plugins: function() {
+                        return [
+                            require('precss'),
+                            require('autoprefixer')
+                        ];
+                    }
+                }
+            },
+            {
+                loader: 'sass-loader'
+            },
+            
+        ]
       }
-    ],
-    plugins: [
-      new ExtractTextPlugin("styles.css"),
     ]
   }
 }

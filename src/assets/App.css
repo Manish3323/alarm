@@ -1,3 +1,9 @@
+
+.red-background{
+  background-color:rgba(238, 84, 84, 0.486);
+  border:'1px solid black'l
+}
+
 .App {
   text-align: center;
 }
