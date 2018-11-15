@@ -75,7 +75,7 @@ class Home extends Component {
         this.setState({data,playsound:false})
     }
     loadAlarms() {
-        fetch('http://localhost:3000/getAlarms')
+        fetch('http://alarmapp-simulator.herokuapp.com/getAlarms')
         .then(response => response.json()
         ).then(
             json => {
